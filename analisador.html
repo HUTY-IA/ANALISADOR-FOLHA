@@ -1,1 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Validador de Folha — Huty</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F0F4F9;--card:#fff;--border:#DDE3EC;
+  --blue:#1A4FA0;--blue2:#2E6FD4;--blue3:#E6F1FB;
+  --green:#1A7A42;--green2:#EAF3DE;
+  --red:#B91C1C;--red2:#FFDCE0;
+  --amber:#B45309;--amber2:#FFF3CD;
+  --ink:#0D1B2A;--ink2:#3D5166;--ink3:#7A8EA3;
+}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;min-height:100vh}
+.topbar{background:var(--blue);padding:0 28px;height:52px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.topbar-brand{color:#fff;font-weight:700;font-size:.92rem;letter-spacing:.04em}
+.topbar-sub{color:rgba(255,255,255,.55);font-size:.74rem;margin-top:1px}
+.wrap{max-width:900px;margin:0 auto;padding:28px 20px 60px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:18px}
+.card-head{background:var(--ink);color:#fff;padding:13px 20px;font-size:.92rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.card-head small{font-weight:400;opacity:.55;font-size:.76rem;margin-left:4px}
+.tabs{display:flex;border-bottom:1px solid var(--border);background:#FAFBFD;padding:0 16px;overflow-x:auto}
+.tab{padding:10px 14px;font-size:.81rem;font-weight:600;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:color .15s;flex-shrink:0}
+.tab:hover{color:var(--blue)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab .dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .2s}
+.tab.loaded .dot{background:var(--green)}
+.panels{padding:18px 20px}
+.panel{display:none}.panel.active{display:block}
 
+/* File selector — botão explícito, sem truques de overlay */
+.file-area{border:2px dashed var(--border);border-radius:9px;padding:22px;text-align:center;transition:border-color .2s,background .2s}
+.file-area.loaded{border-style:solid;border-color:var(--green);background:#F0FBF4}
+.file-area.over{border-color:var(--blue2);background:var(--blue3)}
+.file-area .fa-icon{font-size:2rem;margin-bottom:8px;display:block;opacity:.45}
+.file-area.loaded .fa-icon{opacity:1;filter:hue-rotate(90deg)}
+.file-area .fa-label{font-weight:600;font-size:.87rem;color:var(--ink2);margin-bottom:3px}
+.file-area .fa-hint{font-size:.75rem;color:var(--ink3);margin-bottom:12px}
+.file-area .fa-name{font-size:.78rem;color:var(--green);font-weight:600;margin-top:8px;word-break:break-all;min-height:18px}
+.btn-sel{display:inline-flex;align-items:center;gap:7px;padding:8px 20px;background:var(--blue);color:#fff;font-size:.82rem;font-weight:700;border:none;border-radius:6px;cursor:pointer;transition:background .15s}
+.btn-sel:hover{background:var(--blue2)}
+
+.btn-run{display:block;width:100%;padding:13px;background:var(--blue);color:#fff;font-size:.95rem;font-weight:700;border:none;border-radius:9px;cursor:pointer;margin-top:4px;transition:background .2s}
+.btn-run:hover:not(:disabled){background:var(--blue2)}
+.btn-run:disabled{opacity:.4;cursor:not-allowed}
+
+.status{border-radius:8px;padding:11px 15px;font-size:.85rem;margin-top:14px;display:none;align-items:center;gap:9px}
+.status.show{display:flex}
+.status.loading{background:var(--blue3);border:1px solid #B8CCE8;color:var(--blue)}
+.status.success{background:var(--green2);border:1px solid #A3D9B1;color:var(--green)}
+.status.error{background:var(--red2);border:1px solid #FFCDD2;color:var(--red)}
+.spin{width:14px;height:14px;border:2px solid rgba(26,79,160,.2);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.rg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:520px){.rg{grid-template-columns:1fr}}
+.rb{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px;text-align:center}
+.rb.ok{border-color:#A3D9B1;background:var(--green2)}.rb.err{border-color:#FFCDD2;background:var(--red2)}
+.rb .rn{font-size:1.8rem;font-weight:800;line-height:1}
+.rb.ok .rn{color:var(--green)}.rb.err .rn{color:var(--red)}
+.rb .rl{font-size:.74rem;color:var(--ink3);margin-top:3px}
+
+.btn-dl{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;background:var(--green);color:#fff;font-weight:700;border-radius:7px;border:none;cursor:pointer;font-size:.86rem;margin-bottom:16px}
+.btn-dl:hover{background:#155d2b}
+
+.ds{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.ds-head{padding:10px 15px;font-size:.81rem;font-weight:700;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border)}
+.ds-head.apo{background:var(--blue3);color:var(--blue)}.ds-head.emp{background:var(--green2);color:var(--green)}.ds-head.cop{background:var(--amber2);color:var(--amber)}
+.dt{width:100%;border-collapse:collapse;font-size:.76rem}
+.dt th{background:var(--ink);color:#fff;padding:6px 9px;text-align:left;font-weight:600;white-space:nowrap}
+.dt td{padding:5px 9px;border-bottom:1px solid var(--border);vertical-align:top}
+.dt tr.er td{background:#FFF5F5}.dt tr.av td{background:#FFFDF0}
+.dt tr:last-child td{border-bottom:none}
+.tag{display:inline-block;border-radius:3px;padding:1px 6px;font-size:.68rem;font-weight:700}
+.tag.ERRO{background:var(--red2);color:var(--red)}.tag.AVISO{background:var(--amber2);color:var(--amber)}
+.nc{text-align:right;font-family:'Courier New',monospace;font-size:.74rem;white-space:nowrap}
+.empty{text-align:center;padding:24px;color:var(--ink3);font-size:.83rem}
+.shield{background:var(--blue3);border:1px solid #B8CCE8;border-radius:8px;padding:9px 15px;font-size:.78rem;color:var(--blue);display:flex;align-items:center;gap:7px;margin-bottom:18px}
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div>
+    <div class="topbar-brand">HUTY — Validador de Folha de Pagamento</div>
+    <div class="topbar-sub">Cruzamento automático: Apontamentos · Empréstimos · Coparticipação</div>
+  </div>
+  <div style="color:rgba(255,255,255,.4);font-size:.72rem">v3.0</div>
+</nav>
+
+<div class="wrap">
+
+<div class="shield">
+  🔒 Processamento 100% local — nenhum dado é enviado para servidores externos. Os arquivos ficam apenas no seu navegador.
+</div>
+
+<div class="card">
+  <div class="card-head">
+    📂 Carregue os documentos para validação
+    <small>— Obrigatório: PDF + Apontamentos + Empréstimos</small>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="extrato"      id="tab-extrato">     <span class="dot"></span> Extrato PDF</div>
+    <div class="tab"        data-tab="apontamentos" id="tab-apontamentos"><span class="dot"></span> Apontamentos</div>
+    <div class="tab"        data-tab="emprestimos"  id="tab-emprestimos"> <span class="dot"></span> Empréstimos</div>
+    <div class="tab"        data-tab="coop"         id="tab-coop">        <span class="dot"></span> Coparticipação <span style="font-size:.68rem;opacity:.55">(opcional)</span></div>
+  </div>
+
+  <div class="panels">
+    <div class="panel active" id="panel-extrato">
+      <div class="file-area" id="fa-extrato">
+        <span class="fa-icon">📋</span>
+        <div class="fa-label">Extrato Mensal do Sistema Domínio</div>
+        <div class="fa-hint">Aponatmentos__-_Sistema.pdf</div>
+        <button class="btn-sel" onclick="triggerFile('extrato')">📁 Selecionar arquivo</button>
+        <input type="file" id="fi-extrato" accept=".pdf" style="display:none" onchange="onFile('extrato',this)">
+        <div class="fa-name" id="fn-extrato"></div>
+      </div>
+    </div>
+    <div class="panel" id="panel-apontamentos">
+      <div class="file-area" id="fa-apontamentos">
+        <span class="fa-icon">📊</span>
+        <div class="fa-label">Planilha de Apontamentos</div>
+        <div class="fa-hint">APONTAMENTOS_MM-AAAA.xls / .xlsx</div>
+        <button class="btn-sel" onclick="triggerFile('apontamentos')">📁 Selecionar arquivo</button>
+        <input type="file" id="fi-apontamentos" accept=".xls,.xlsx" style="display:none" onchange="onFile('apontamentos',this)">
+        <div class="fa-name" id="fn-apontamentos"></div>
+      </div>
+    </div>
+    <div class="panel" id="panel-emprestimos">
+      <div class="file-area" id="fa-emprestimos">
+        <span class="fa-icon">🏦</span>
+        <div class="fa-label">Empréstimos Consignados</div>
+        <div class="fa-hint">EMPRESTIMOS_MM-AAAA.xlsx</div>
+        <button class="btn-sel" onclick="triggerFile('emprestimos')">📁 Selecionar arquivo</button>
+        <input type="file" id="fi-emprestimos" accept=".xls,.xlsx" style="display:none" onchange="onFile('emprestimos',this)">
+        <div class="fa-name" id="fn-emprestimos"></div>
+      </div>
+    </div>
+    <div class="panel" id="panel-coop">
+      <div class="file-area" id="fa-coop">
+        <span class="fa-icon">🏥</span>
+        <div class="fa-label">Descontos de Coparticipação</div>
+        <div class="fa-hint">DESCONTOS_DE_COOPARTICIPACAO_MM-AAAA.xls</div>
+        <button class="btn-sel" onclick="triggerFile('coop')">📁 Selecionar arquivo</button>
+        <input type="file" id="fi-coop" accept=".xls,.xlsx" style="display:none" onchange="onFile('coop',this)">
+        <div class="fa-name" id="fn-coop"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:0 20px 18px">
+    <button class="btn-run" id="btn-run" disabled onclick="runValidation()">▶ Analisar e Validar</button>
+    <div class="status" id="status">
+      <div class="spin" id="spin"></div>
+      <span id="smsg">Processando...</span>
+    </div>
+  </div>
+</div>
+
+<div id="results"></div>
+
+</div>
+
+<!-- SheetJS para ler Excel e gerar relatório -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- PDF.js para ler o extrato PDF -->
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+// ── Estado ────────────────────────────────────────────────────────
+const FILES = {extrato:null, apontamentos:null, emprestimos:null, coop:null};
+const TOLERANCE = 0.10;
+
+// ── Tabs ──────────────────────────────────────────────────────────
+document.getElementById('tabs').addEventListener('click', e => {
+  const t = e.target.closest('.tab'); if (!t) return;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+});
+
+// ── File input ────────────────────────────────────────────────────
+function triggerFile(key) {
+  document.getElementById('fi-'+key).click();
+}
+
+function onFile(key, input) {
+  if (!input.files.length) return;
+  const f = input.files[0];
+  FILES[key] = f;
+  document.getElementById('fa-'+key).classList.add('loaded');
+  document.getElementById('fn-'+key).textContent = '✓ ' + f.name;
+  document.getElementById('tab-'+key).classList.add('loaded');
+  checkReady();
+}
+
+// Drag and drop
+['extrato','apontamentos','emprestimos','coop'].forEach(key => {
+  const fa = document.getElementById('fa-'+key);
+  fa.addEventListener('dragover', e => { e.preventDefault(); fa.classList.add('over'); });
+  fa.addEventListener('dragleave', () => fa.classList.remove('over'));
+  fa.addEventListener('drop', e => {
+    e.preventDefault(); fa.classList.remove('over');
+    const f = e.dataTransfer.files[0]; if (!f) return;
+    FILES[key] = f;
+    fa.classList.add('loaded');
+    document.getElementById('fn-'+key).textContent = '✓ ' + f.name;
+    document.getElementById('tab-'+key).classList.add('loaded');
+    checkReady();
+  });
+});
+
+function checkReady() {
+  document.getElementById('btn-run').disabled = !(FILES.extrato && FILES.apontamentos && FILES.emprestimos);
+}
+
+// ── Status ────────────────────────────────────────────────────────
+function setStatus(type, msg) {
+  const el = document.getElementById('status');
+  el.className = 'status show ' + type;
+  document.getElementById('smsg').textContent = msg;
+  document.getElementById('spin').style.display = type==='loading' ? 'block' : 'none';
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function toFloat(v) {
+  if (v === null || v === undefined) return 0;
+  if (typeof v === 'number') return isNaN(v) ? 0 : v;
+  const s = String(v).replace('R$','').trim();
+  if (!s || s.toUpperCase()==='CANCELADO' || s.toUpperCase().includes('CANCEL')) return 0;
+  // BR format: 1.234,56
+  const br = s.match(/^[\d.]+,\d+$/);
+  const parsed = br ? parseFloat(s.replace(/\./g,'').replace(',','.')) : parseFloat(s.replace(',','.'));
+  return isNaN(parsed) ? 0 : parsed;
+}
+function isCancelado(v) { return typeof v === 'string' && v.toUpperCase().includes('CANCEL'); }
+function fmtR(v) { return v===0 ? '—' : 'R$ ' + v.toFixed(2).replace('.',','); }
+
+// ── Parse PDF extrato ─────────────────────────────────────────────
+async function parsePDF(file) {
+  const ab = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: ab}).promise;
+  const funcs = {};
+  let empresa = '', competencia = '', cur = null;
+
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    // agrupa items por linha (y aproximado)
+    const byY = {};
+    tc.items.forEach(item => {
+      const y = Math.round(item.transform[5]);
+      if (!byY[y]) byY[y] = [];
+      byY[y].push(item.str);
+    });
+    const lines = Object.keys(byY).sort((a,b)=>b-a).map(y => byY[y].join(''));
+
+    for (const line of lines) {
+      const l = line.trim();
+      if (!l) continue;
+
+      if (!empresa) {
+        const m = l.match(/Empresa:\s*\d+\s*-\s*(.+?)(?:\s+P[áa]gina|\s+CNPJ|$)/);
+        if (m) empresa = m[1].trim();
+      }
+      if (!competencia) {
+        const m = l.match(/Compet[êe]ncia:\s*(\d{2}\/\d{4})/);
+        if (m) competencia = m[1];
+      }
+
+      // Cabeçalho funcionário
+      const mh = l.match(/Empr\.\:\s*(\d+)\s*(.+?)\s+Situa[çc]/) || l.match(/Contr\:\s*(\d+)\s*(.+?)\s+Situa[çc]/);
+      if (mh) {
+        if (cur) funcs[cur.mat] = cur;
+        const nome = mh[2].replace(/\s+(?:CPF|Situa).*/,'').trim();
+        cur = { mat: parseInt(mh[1]), nome, sal: 0, hm: 220, rubs: {}, loans: [] };
+        continue;
+      }
+      if (!cur) continue;
+
+      // Salário
+      const ms = l.match(/Sal[aá]rio:\s*([\d.,]+)/);
+      if (ms && cur.sal === 0) cur.sal = toFloat(ms[1]);
+
+      // Horas mês
+      const mhm = l.match(/Horas\s+M[eê]s:\s*([\d.,]+)/);
+      if (mhm) { const v = toFloat(mhm[1]); if (v>0) cur.hm = v; }
+
+      // Empréstimo
+      const ml = l.match(/^(\d{3,4})\s+DESC[\.\s]+EMP[\.\s]+CRED[\.\s]+TRAB\s+N[oOº°]?\s*([\w]+)\s+[\d.,]+\s+([\d.,]+)\s*D\s*$/i);
+      if (ml) { const v = toFloat(ml[3]); if (v>0) cur.loans.push({contrato:ml[2].trim(),valor:v,rub:ml[1]}); continue; }
+
+      // Rubricas — divide linha em segmentos
+      const segs = l.split(/(?<=[ PD*])\s+(?=\d{1,5}[^\d,.])/);
+      for (const seg of segs) {
+        const mc = seg.trim().match(/^(\d{1,5})/);
+        if (!mc) continue;
+        const cod = mc[1];
+        const mv = seg.trim().match(/([\d]{1,3}(?:\.?\d{3})*(?:,\d+)?)\s*([PD*])\s*$/);
+        if (!mv) continue;
+        const val = toFloat(mv[1]);
+        if (val > 0) cur.rubs[cod] = (cur.rubs[cod]||0) + val;
+      }
+    }
+  }
+  if (cur) funcs[cur.mat] = cur;
+  return { funcs, empresa, competencia };
+}
+
+// ── Parse Excel Apontamentos ──────────────────────────────────────
+async function parseApontamentos(file) {
+  const ab = await file.arrayBuffer();
+  const wb = XLSX.read(ab, {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+
+  let headerRow = -1, codeRow = -1;
+  for (let i = 0; i < raw.length; i++) {
+    const vals = raw[i].map(v => String(v||''));
+    if (vals.some(v => v.includes('digo Empregado') || v.includes('Codigo Empregado'))) {
+      headerRow = i;
+      codeRow = i + 1;
+      break;
+    }
+  }
+  if (headerRow < 0) throw new Error('Apontamentos: cabeçalho "Código Empregado" não encontrado.');
+
+  const colCodes = {};
+  if (codeRow < raw.length) {
+    raw[codeRow].forEach((v, ci) => {
+      const s = String(v||'').trim().split('.')[0];
+      if (/^\d+$/.test(s)) colCodes[ci] = s;
+    });
+  }
+
+  const result = {};
+  for (let i = headerRow + 2; i < raw.length; i++) {
+    const row = raw[i];
+    const matRaw = row[1];
+    if (matRaw === null || matRaw === undefined) continue;
+    const mat = parseInt(String(matRaw).trim());
+    if (!mat || mat <= 0) continue;
+    const data = {};
+    Object.entries(colCodes).forEach(([ci, rub]) => {
+      data[rub] = isCancelado(row[ci]) ? 0 : toFloat(row[ci]);
+    });
+    result[mat] = data;
+  }
+  return result;
+}
+
+// ── Parse Excel Empréstimos ───────────────────────────────────────
+async function parseEmprestimos(file) {
+  const ab = await file.arrayBuffer();
+  const wb = XLSX.read(ab, {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {defval:null});
+  const records = [];
+  for (const row of rows) {
+    const contrato = String(row['contrato']||'').trim();
+    if (!contrato || contrato.toLowerCase()==='null' || contrato.toLowerCase()==='undefined') continue;
+    const parcela = toFloat(row['valorParcela']);
+    if (parcela <= 0) continue;
+    records.push({ nome: String(row['nomeTrabalhador']||'').trim(), contrato, valorParcela: parcela });
+  }
+  return records;
+}
+
+// ── Parse Excel Coparticipação ────────────────────────────────────
+async function parseCoop(file) {
+  const ab = await file.arrayBuffer();
+  const wb = XLSX.read(ab, {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+
+  let headerRow = -1;
+  for (let i = 0; i < raw.length; i++) {
+    const vals = raw[i].map(v => String(v||'').trim());
+    if (vals.some(v => ['Cód.','Cod.','Código'].includes(v))) { headerRow = i; break; }
+  }
+  if (headerRow < 0) throw new Error('Coparticipação: cabeçalho não reconhecido.');
+
+  const hdr = raw[headerRow].map(v => String(v||'').trim());
+  let cCod=1, c227=3, c203=6;
+  hdr.forEach((h,i) => {
+    if (['Cód.','Cod.','Código'].includes(h)) cCod=i;
+    else if (h.includes('227')) c227=i;
+    else if (h.includes('203')) c203=i;
+  });
+
+  const result = {};
+  for (let i = headerRow+1; i < raw.length; i++) {
+    const row = raw[i];
+    const mat = parseInt(String(row[cCod]||'').trim());
+    if (!mat || mat <= 0) continue;
+    const v227 = toFloat(row[c227]);
+    const v203 = toFloat(row[c203]);
+    if (result[mat]) { result[mat]['227']+=v227; result[mat]['203']+=v203; }
+    else result[mat] = {'227':v227,'203':v203};
+  }
+  return result;
+}
+
+// ── Validações ────────────────────────────────────────────────────
+const RD = {
+  '227':'Plano Saúde Informativa','230':'VR Local Informativa',
+  '231':'VR Cartão Informativa','224':'VT Cartão Informativa',
+  '8111':'Desconto Plano de Saúde','202':'Assistência Odontológica',
+  '203':'Fator Moderador Unimed','204':'Desconto Vale Refeição','48':'Desconto VT'
+};
+const RH = {'150':['Horas Extras 50%',1.5],'200':['Horas Extras 100%',2.0]};
+
+function valApo(apo, funcs) {
+  const divs = [];
+  Object.entries(apo).forEach(([matStr, a]) => {
+    const mat = parseInt(matStr);
+    const func = funcs[mat];
+    if (!func) { divs.push({tipo:'APONTAMENTOS',mat,nome:`Matrícula ${mat}`,rub:'—',desc:'Matrícula não encontrada na folha',vx:0,vf:0,diff:0,grav:'AVISO'}); return; }
+    Object.entries(RD).forEach(([cod,desc]) => {
+      const vx=a[cod]||0, vf=func.rubs[cod]||0;
+      if (Math.abs(vx-vf)>TOLERANCE) divs.push({tipo:'APONTAMENTOS',mat,nome:func.nome,rub:cod,desc,vx,vf,diff:vx-vf,grav:Math.abs(vx-vf)>0.5?'ERRO':'AVISO'});
+    });
+    const hm = func.hm||220, sh = func.sal>0 ? func.sal/hm : 0;
+    Object.entries(RH).forEach(([cod,[desc,mult]]) => {
+      const horas=a[cod]||0, vf=func.rubs[cod]||0;
+      if (horas===0 && vf===0) return;
+      const vx = sh>0 ? Math.round(horas*sh*mult*100)/100 : 0;
+      if (Math.abs(vx-vf)>TOLERANCE) divs.push({tipo:'APONTAMENTOS',mat,nome:func.nome,rub:cod,desc:`${desc} — ${horas}h × R$${sh.toFixed(4)}/h × ${mult} = R$${vx.toFixed(2)}`,vx,vf,diff:vx-vf,grav:'ERRO'});
+    });
+  });
+  return divs;
+}
+
+function valEmp(empEx, funcs) {
+  const divs = [], fc = {};
+  Object.values(funcs).forEach(func => {
+    func.loans.forEach(l => { fc[l.contrato]={valor:l.valor,rub:l.rub,mat:func.mat,nome:func.nome}; });
+  });
+  const ec = new Set();
+  empEx.forEach(rec => {
+    const c=rec.contrato; ec.add(c); const vx=rec.valorParcela;
+    if (fc[c]) {
+      const vf=fc[c].valor;
+      if (Math.abs(vx-vf)>TOLERANCE) divs.push({tipo:'EMPRESTIMOS',mat:fc[c].mat,nome:fc[c].nome,rub:fc[c].rub,desc:`Parcela contrato ${c}`,vx,vf,diff:vx-vf,grav:'ERRO'});
+    } else {
+      divs.push({tipo:'EMPRESTIMOS',mat:0,nome:rec.nome,rub:'—',desc:`Contrato ${c} no Excel mas NÃO descontado na folha`,vx,vf:0,diff:vx,grav:'ERRO'});
+    }
+  });
+  Object.entries(fc).forEach(([c,info]) => {
+    if (!ec.has(c)) divs.push({tipo:'EMPRESTIMOS',mat:info.mat,nome:info.nome,rub:info.rub,desc:`Contrato ${c} na folha mas AUSENTE no Excel`,vx:0,vf:info.valor,diff:-info.valor,grav:'ERRO'});
+  });
+  return divs;
+}
+
+function valCoop(coop, funcs) {
+  const divs = [], rubs={'227':'Plano Saúde Informativa','203':'Fator Moderador Unimed'};
+  const allMats = new Set([...Object.keys(coop).map(Number),
+    ...Object.keys(funcs).filter(m=>funcs[m].rubs['227']||funcs[m].rubs['203']).map(Number)]);
+  allMats.forEach(mat => {
+    const func=funcs[mat], nome=func?func.nome:`Matrícula ${mat}`, ed=coop[mat]||{};
+    Object.entries(rubs).forEach(([cod,desc]) => {
+      const vx=ed[cod]||0, vf=func?(func.rubs[cod]||0):0;
+      if (Math.abs(vx-vf)>TOLERANCE) divs.push({tipo:'COPARTICIPACAO',mat,nome,rub:cod,desc,vx,vf,diff:vx-vf,grav:Math.abs(vx-vf)>1?'ERRO':'AVISO'});
+    });
+  });
+  return divs;
+}
+
+// ── Run ───────────────────────────────────────────────────────────
+let _lastData = null;
+
+async function runValidation() {
+  const btn = document.getElementById('btn-run');
+  btn.disabled = true;
+  document.getElementById('results').innerHTML = '';
+  setStatus('loading','Lendo extrato PDF...');
+  try {
+    const {funcs, empresa, competencia} = await parsePDF(FILES.extrato);
+    setStatus('loading',`PDF lido: ${Object.keys(funcs).length} funcionários. Lendo apontamentos...`);
+    const apo = await parseApontamentos(FILES.apontamentos);
+    setStatus('loading','Lendo empréstimos...');
+    const emp = await parseEmprestimos(FILES.emprestimos);
+    let coop = null;
+    if (FILES.coop) { setStatus('loading','Lendo coparticipação...'); coop = await parseCoop(FILES.coop); }
+    setStatus('loading','Validando...');
+    let divs = [...valApo(apo,funcs), ...valEmp(emp,funcs)];
+    if (coop) divs = [...divs, ...valCoop(coop,funcs)];
+    _lastData = {divs, empresa, competencia, nFunc:Object.keys(funcs).length};
+    const total=divs.length, erros=divs.filter(d=>d.grav==='ERRO').length;
+    setStatus(total===0?'success':'loading', total===0?'✅ Nenhuma divergência encontrada!':`${total} divergências (${erros} erros). Gerando relatório...`);
+    renderResults(divs, empresa, competencia);
+    if (total>0) setStatus('success',`Validação concluída — ${total} divergências encontradas (${erros} erros)`);
+  } catch(e) {
+    setStatus('error','❌ ' + e.message);
+    console.error(e);
+  } finally { btn.disabled = false; }
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderResults(divs, empresa, competencia) {
+  const byT = {APONTAMENTOS:[],EMPRESTIMOS:[],COPARTICIPACAO:[]};
+  divs.forEach(d => { if(byT[d.tipo]) byT[d.tipo].push(d); });
+  const n = k=>byT[k].length, e = k=>byT[k].filter(d=>d.grav==='ERRO').length;
+  const bc = k => n(k)===0?'ok':'err';
+
+  let html = `<div class="rg">
+    <div class="rb ${bc('APONTAMENTOS')}"><div class="rn">${n('APONTAMENTOS')}</div><div class="rl">Apontamentos<br>${e('APONTAMENTOS')} erro(s)</div></div>
+    <div class="rb ${bc('EMPRESTIMOS')}"><div class="rn">${n('EMPRESTIMOS')}</div><div class="rl">Empréstimos<br>${e('EMPRESTIMOS')} erro(s)</div></div>
+    <div class="rb ${bc('COPARTICIPACAO')}"><div class="rn">${n('COPARTICIPACAO')}</div><div class="rl">Coparticipação<br>${e('COPARTICIPACAO')} erro(s)</div></div>
+  </div>
+  <button class="btn-dl" onclick="downloadExcel()">⬇ Baixar Relatório Excel Completo</button>`;
+
+  const mods = [
+    {key:'APONTAMENTOS',label:'Apontamentos',cls:'apo'},
+    {key:'EMPRESTIMOS',label:'Empréstimos',cls:'emp'},
+    {key:'COPARTICIPACAO',label:'Coparticipação',cls:'cop'},
+  ];
+  mods.forEach(({key,label,cls}) => {
+    const items = byT[key];
+    html += `<div class="ds"><div class="ds-head ${cls}">${label} — ${items.length} divergência(s)</div>`;
+    if (!items.length) { html += `<div class="empty">✅ Sem divergências neste módulo</div>`; }
+    else {
+      html += `<div style="overflow-x:auto"><table class="dt"><thead><tr><th>Mat.</th><th>Nome</th><th>Rub.</th><th>Descrição</th><th class="nc">Excel</th><th class="nc">Folha</th><th class="nc">Diff</th><th>Grau</th></tr></thead><tbody>`;
+      items.slice(0,200).forEach(d => {
+        const cls2 = d.grav==='ERRO'?'er':'av';
+        html += `<tr class="${cls2}"><td>${d.mat||'—'}</td><td>${d.nome}</td><td><code style="font-size:.72rem">${d.rub}</code></td><td>${d.desc}</td><td class="nc">${fmtR(d.vx)}</td><td class="nc">${fmtR(d.vf)}</td><td class="nc" style="color:${d.diff>0?'#B91C1C':'#1A7A42'}">${d.diff>0?'+':''}${fmtR(d.diff)}</td><td><span class="tag ${d.grav}">${d.grav}</span></td></tr>`;
+      });
+      if (items.length>200) html += `<tr><td colspan="8" style="text-align:center;padding:8px;color:var(--ink3)">... e mais ${items.length-200} no relatório Excel</td></tr>`;
+      html += `</tbody></table></div>`;
+    }
+    html += `</div>`;
+  });
+  document.getElementById('results').innerHTML = html;
+}
+
+// ── Download Excel ────────────────────────────────────────────────
+function downloadExcel() {
+  if (!_lastData) return;
+  const {divs, empresa, competencia, nFunc} = _lastData;
+  const wb = XLSX.utils.book_new();
+
+  // Resumo
+  const rsm = [
+    ['Validação de Folha — '+competencia],[''],
+    ['Empresa', empresa],['Competência', competencia],
+    ['Funcionários', nFunc],['Emissão', new Date().toLocaleString('pt-BR')],[''],
+    ['Módulo','Divergências (erros)'],
+  ];
+  ['APONTAMENTOS','EMPRESTIMOS','COPARTICIPACAO'].forEach(t => {
+    const n=divs.filter(d=>d.tipo===t).length, e=divs.filter(d=>d.tipo===t&&d.grav==='ERRO').length;
+    rsm.push([t, n>0?`${n} (${e} erros)`:'OK — sem divergências']);
+  });
+  rsm.push([''],['Status', divs.length===0?'SEM DIVERGÊNCIAS':`${divs.length} DIVERGÊNCIAS — ${divs.filter(d=>d.grav==='ERRO').length} ERROS`]);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rsm), 'Resumo');
+
+  // Abas por módulo
+  const headers = ['Matrícula','Nome','Rubrica','Descrição','Valor Excel','Valor Folha','Diferença','Gravidade'];
+  ['APONTAMENTOS','EMPRESTIMOS','COPARTICIPACAO'].forEach((tipo,i) => {
+    const nome = ['Apontamentos','Empréstimos','Coparticipação'][i];
+    const rows = divs.filter(d=>d.tipo===tipo).sort((a,b)=>a.grav.localeCompare(b.grav)||a.mat-b.mat);
+    const data = [headers, ...rows.map(d=>[d.mat||'',d.nome,d.rub,d.desc,d.vx,d.vf,d.diff,d.grav])];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), nome);
+  });
+
+  const comp = competencia.replace('/','_');
+  XLSX.writeFile(wb, `Validacao_Folha_${comp}.xlsx`);
+}
+</script>
+</body>
+</html>
