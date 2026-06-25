@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Validação de Folha — Huty Contabilidade</title>
+<style>
+  /* ── Reset & tokens ───────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:      #0D1B2A;
+    --ink-mid:  #3D5166;
+    --ink-soft: #7A8EA3;
+    --bg:       #F4F7FA;
+    --card:     #FFFFFF;
+    --rule:     #DDE3EC;
+    --blue:     #1A4FA0;
+    --blue-lt:  #2E6FD4;
+    --green:    #1A7A42;
+    --amber:    #B45309;
+    --red:      #B91C1C;
+    --mono:     'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  /* ── Topo ─────────────────────────────────────────────────────── */
+  .topbar {
+    background: var(--blue);
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 8px rgba(0,0,0,.18);
+  }
+  .topbar-brand {
+    color: #fff;
+    font-size: .88rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    opacity: .9;
+  }
+  .topbar-links { display: flex; gap: 28px; }
+  .topbar-links a {
+    color: rgba(255,255,255,.75);
+    text-decoration: none;
+    font-size: .82rem;
+    letter-spacing: .04em;
+    transition: color .15s;
+  }
+  .topbar-links a:hover { color: #fff; }
+
+  /* ── Hero ─────────────────────────────────────────────────────── */
+  .hero {
+    background: var(--blue);
+    padding: 64px 40px 72px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  /* grade de linhas sutis no hero */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.55);
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.18;
+    max-width: 640px;
+    margin: 0 auto 18px;
+    letter-spacing: -.01em;
+  }
+  .hero h1 span { color: #7EB8FF; }
+  .hero-sub {
+    color: rgba(255,255,255,.72);
+    font-size: 1.02rem;
+    max-width: 520px;
+    margin: 0 auto 36px;
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    background: #fff;
+    color: var(--blue);
+    font-weight: 800;
+    font-size: .92rem;
+    padding: 13px 28px;
+    border-radius: 7px;
+    text-decoration: none;
+    letter-spacing: .02em;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.22); }
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1.5px solid rgba(255,255,255,.4);
+    color: rgba(255,255,255,.9);
+    font-weight: 600;
+    font-size: .88rem;
+    padding: 11px 24px;
+    border-radius: 7px;
+    text-decoration: none;
+    margin-left: 12px;
+    transition: border-color .15s, background .15s;
+  }
+  .btn-secondary:hover { border-color: #fff; background: rgba(255,255,255,.08); }
+
+  /* ── Conteúdo ─────────────────────────────────────────────────── */
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── Seção genérica ───────────────────────────────────────────── */
+  .section { padding: 56px 0; border-bottom: 1px solid var(--rule); }
+  .section:last-child { border-bottom: none; }
+  .section-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--blue-lt);
+    margin-bottom: 8px;
+  }
+  .section h2 {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 20px;
+    letter-spacing: -.01em;
+  }
+  .section p { color: var(--ink-mid); margin-bottom: 14px; }
+
+  /* ── Cards de módulos ─────────────────────────────────────────── */
+  .module-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 8px;
+  }
+  @media(max-width: 640px) { .module-grid { grid-template-columns: 1fr; } }
+
+  .module-card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 20px;
+    border-top: 3px solid var(--blue);
+  }
+  .module-card.green  { border-top-color: var(--green); }
+  .module-card.amber  { border-top-color: var(--amber); }
+  .module-card .mc-icon { font-size: 1.5rem; margin-bottom: 10px; }
+  .module-card h3 { font-size: .95rem; font-weight: 700; margin-bottom: 6px; }
+  .module-card p  { font-size: .82rem; color: var(--ink-soft); line-height: 1.55; }
+  .module-card ul { font-size: .82rem; color: var(--ink-soft); padding-left: 16px; }
+  .module-card ul li { margin-bottom: 3px; }
+
+  /* ── Passos de instalação ─────────────────────────────────────── */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 16px;
+    align-items: start;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    width: 36px; height: 36px;
+    background: var(--blue);
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem; font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step h4 { font-size: .95rem; font-weight: 700; margin-bottom: 5px; }
+  .step p, .step li { font-size: .875rem; color: var(--ink-mid); }
+  .step ul { padding-left: 16px; }
+  .step ul li { margin-bottom: 3px; }
+
+  /* ── Código ───────────────────────────────────────────────────── */
+  .code-block {
+    background: #0D1B2A;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 10px 0;
+    font-family: var(--mono);
+    font-size: .82rem;
+    color: #A8C7FA;
+    overflow-x: auto;
+    line-height: 1.7;
+    position: relative;
+  }
+  .code-block .comment { color: #5A7A9A; }
+  .code-block .cmd     { color: #7EB8FF; }
+  .code-block .flag    { color: #A8E6A3; }
+  .code-block .value   { color: #FFD580; }
+  .copy-btn {
+    position: absolute;
+    top: 10px; right: 12px;
+    background: rgba(255,255,255,.1);
+    border: none; color: rgba(255,255,255,.6);
+    font-size: .72rem; padding: 4px 10px;
+    border-radius: 4px; cursor: pointer;
+    transition: background .15s;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,.2); }
+
+  /* ── Tabela de formatos ───────────────────────────────────────── */
+  .fmt-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .85rem;
+    margin-top: 16px;
+  }
+  .fmt-table th {
+    background: var(--blue);
+    color: #fff;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+  }
+  .fmt-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink-mid);
+    vertical-align: top;
+  }
+  .fmt-table tr:nth-child(even) td { background: #F7F9FC; }
+  .fmt-table code {
+    background: #EEF3FB;
+    color: var(--blue);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: .78rem;
+  }
+  .badge-req  { background: #DBEAFE; color: #1D4ED8; padding: 2px 8px; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+  .badge-opt  { background: #F3F4F6; color: #6B7280; padding: 2px 8px; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+
+  /* ── Alerta ───────────────────────────────────────────────────── */
+  .alert {
+    border-left: 3px solid var(--amber);
+    background: #FFFBEB;
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    font-size: .875rem;
+    color: #78350F;
+    margin: 16px 0;
+  }
+  .alert strong { color: var(--amber); }
+
+  /* ── Footer ───────────────────────────────────────────────────── */
+  footer {
+    text-align: center;
+    padding: 36px 20px;
+    font-size: .8rem;
+    color: var(--ink-soft);
+    background: var(--card);
+    border-top: 1px solid var(--rule);
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ────────────────────────────────────────────────────── -->
+<nav class="topbar">
+  <span class="topbar-brand">Huty Contabilidade</span>
+  <div class="topbar-links">
+    <a href="#como-funciona">Como funciona</a>
+    <a href="#instalacao">Instalação</a>
+    <a href="#uso">Uso</a>
+    <a href="#formatos">Formatos</a>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-eyebrow">Ferramenta interna — Departamento de Folha</div>
+  <h1>Validação de <span>Folha de Pagamento</span> automatizada</h1>
+  <p class="hero-sub">
+    Confere apontamentos, empréstimos consignados e coparticipação de plano de saúde
+    contra o extrato mensal do sistema Domínio — em segundos.
+  </p>
+  <a class="btn-primary" href="https://github.com/SEU-USUARIO/validador-folha/releases/latest/download/validador.py"
+     download>
+    ⬇ Baixar validador.py
+  </a>
+  <a class="btn-secondary" href="https://github.com/SEU-USUARIO/validador-folha" target="_blank">
+    Ver no GitHub →
+  </a>
+</section>
+
+<!-- ── Como funciona ─────────────────────────────────────────────── -->
+<section class="section" id="como-funciona">
+  <div class="wrap">
+    <div class="section-label">Visão geral</div>
+    <h2>O que o script valida</h2>
+    <p>
+      O <strong>validador.py</strong> lê o PDF do extrato mensal gerado pelo Domínio
+      (a fonte da verdade) e cruza com os três arquivos Excel que o escritório recebe dos clientes.
+      Qualquer diferença vira uma linha no relatório final.
+    </p>
+
+    <div class="module-grid">
+      <div class="module-card">
+        <div class="mc-icon">🗂️</div>
+        <h3>Apontamentos</h3>
+        <ul>
+          <li>Vale refeição local e cartão</li>
+          <li>Vale transporte cartão e desconto</li>
+          <li>Plano de saúde (8111) e odonto (202)</li>
+          <li>Fator moderador (203)</li>
+          <li>Horas extras 50% e 100%</li>
+        </ul>
+      </div>
+      <div class="module-card green">
+        <div class="mc-icon">🏦</div>
+        <h3>Empréstimos</h3>
+        <ul>
+          <li>Cruza contrato por contrato</li>
+          <li>Detecta parcelas com valor errado</li>
+          <li>Detecta contratos no Excel não descontados</li>
+          <li>Detecta contratos na folha ausentes no Excel</li>
+        </ul>
+      </div>
+      <div class="module-card amber">
+        <div class="mc-icon">🏥</div>
+        <h3>Coparticipação</h3>
+        <ul>
+          <li>Rubrica 227 — PS informativa por funcionário</li>
+          <li>Rubrica 203 — fator moderador</li>
+          <li>Compara Excel do cliente vs folha processada</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="alert" style="margin-top: 24px;">
+      <strong>Horas Extras:</strong> o Excel de apontamentos informa as <em>horas</em>;
+      o script calcula o valor (horas × salário-hora × multiplicador) e compara com a folha.
+      Nenhuma digitação manual necessária.
+    </div>
+  </div>
+</section>
+
+<!-- ── Instalação ─────────────────────────────────────────────────── -->
+<section class="section" id="instalacao">
+  <div class="wrap">
+    <div class="section-label">Configuração inicial</div>
+    <h2>Instalação — uma única vez</h2>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h4>Instale o Python 3.10 ou superior</h4>
+          <p>Baixe em <strong>python.org/downloads</strong> e marque
+          <em>"Add Python to PATH"</em> durante a instalação (Windows).</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h4>Baixe o validador.py</h4>
+          <p>Clique no botão acima ou acesse o GitHub e salve o arquivo
+          <code>validador.py</code> em uma pasta fixa, ex: <code>C:\Huty\validador\</code></p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h4>Instale as dependências (só na primeira vez)</h4>
+          <p>Abra o Prompt de Comando (cmd) e execute:</p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">copiar</button>
+<span class="cmd">pip install</span> <span class="value">pdfplumber pandas openpyxl xlrd</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Uso ────────────────────────────────────────────────────────── -->
+<section class="section" id="uso">
+  <div class="wrap">
+    <div class="section-label">Uso mensal</div>
+    <h2>Como rodar a validação</h2>
+
+    <p>
+      Coloque todos os arquivos do mês em uma pasta (ex: <code>C:\Folhas\06-2026\</code>)
+      e execute um dos comandos abaixo no Prompt de Comando.
+    </p>
+
+    <h4 style="margin: 24px 0 8px; font-size: .95rem;">Opção 1 — pasta automática (mais fácil)</h4>
+    <div class="code-block" style="position:relative">
+      <button class="copy-btn" onclick="copyCode(this)">copiar</button>
+<span class="comment"># O script detecta os arquivos automaticamente pelo nome</span>
+<span class="cmd">python</span> <span class="value">validador.py</span> <span class="flag">--pasta</span> <span class="value">C:\Folhas\06-2026</span>
+    </div>
+
+    <h4 style="margin: 24px 0 8px; font-size: .95rem;">Opção 2 — arquivos individuais</h4>
+    <div class="code-block" style="position:relative">
+      <button class="copy-btn" onclick="copyCode(this)">copiar</button>
+<span class="cmd">python</span> <span class="value">validador.py</span> \
+  <span class="flag">--extrato</span>      <span class="value">Aponatmentos__-_Sistema.pdf</span> \
+  <span class="flag">--apontamentos</span> <span class="value">APONTAMENTOS_06-2026.xls</span> \
+  <span class="flag">--emprestimos</span>  <span class="value">EMPRESTIMOS_06-2026.xlsx</span> \
+  <span class="flag">--coop</span>         <span class="value">DESCONTOS_DE_COOPARTICIPAC_A_O_06-2026.xls</span>
+    </div>
+
+    <h4 style="margin: 24px 0 8px; font-size: .95rem;">Resultado</h4>
+    <p>
+      O relatório <code>Validacao_Folha_06-2026.xlsx</code> é criado na mesma pasta,
+      com 4 abas:
+    </p>
+    <ul style="padding-left: 20px; color: var(--ink-mid); font-size: .875rem; margin-top: 8px;">
+      <li><strong>Resumo</strong> — status geral por módulo</li>
+      <li><strong>Apontamentos</strong> — divergências de lançamentos (vermelho = erro, amarelo = aviso)</li>
+      <li><strong>Empréstimos</strong> — contratos com valor errado ou ausentes</li>
+      <li><strong>Coparticipação</strong> — diferenças na rubrica 227 e 203</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ── Formatos ───────────────────────────────────────────────────── -->
+<section class="section" id="formatos">
+  <div class="wrap">
+    <div class="section-label">Referência</div>
+    <h2>Formatos esperados dos arquivos</h2>
+
+    <table class="fmt-table">
+      <thead>
+        <tr>
+          <th>Arquivo</th>
+          <th>Formato</th>
+          <th>Nome esperado</th>
+          <th>Obrigatoriedade</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Extrato Mensal</strong><br><small>Gerado pelo Domínio</small></td>
+          <td>PDF</td>
+          <td><code>Aponatmentos__-_Sistema.pdf</code></td>
+          <td><span class="badge-req">Obrigatório</span></td>
+        </tr>
+        <tr>
+          <td><strong>Apontamentos</strong><br><small>Planilha do cliente</small></td>
+          <td>XLS / XLSX</td>
+          <td><code>APONTAMENTOS_MM-AAAA.xls</code></td>
+          <td><span class="badge-req">Obrigatório</span></td>
+        </tr>
+        <tr>
+          <td><strong>Empréstimos Consignados</strong><br><small>Exportação eSocial / FGTS Digital</small></td>
+          <td>XLSX</td>
+          <td><code>EMPRESTIMOS_MM-AAAA.xlsx</code></td>
+          <td><span class="badge-req">Obrigatório</span></td>
+        </tr>
+        <tr>
+          <td><strong>Coparticipação</strong><br><small>Planilha do plano de saúde</small></td>
+          <td>XLS / XLSX</td>
+          <td><code>DESCONTOS_DE_COOPARTICIPACAO_MM-AAAA.xls</code></td>
+          <td><span class="badge-opt">Opcional</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert" style="margin-top: 20px;">
+      <strong>Dica:</strong> Para a auto-detecção funcionar com <code>--pasta</code>,
+      os nomes dos arquivos precisam seguir o padrão acima.
+      Se o cliente renomear os arquivos, use os parâmetros individuais
+      (<code>--extrato</code>, <code>--apontamentos</code>, etc.).
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ────────────────────────────────────────────────────── -->
+<footer>
+  Huty Contabilidade Ltda · Ferramenta de uso interno · Versão 1.0 · 2026
+</footer>
+
+<script>
+function copyCode(btn) {
+  const block = btn.parentElement;
+  const text = block.innerText.replace('copiar\n', '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copiado!';
+    setTimeout(() => btn.textContent = 'copiar', 1800);
+  });
+}
+
+// Smooth scroll para âncoras
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const el = document.querySelector(a.getAttribute('href'));
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+
+</body>
+</html>
